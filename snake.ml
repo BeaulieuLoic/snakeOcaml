@@ -409,7 +409,7 @@ let versDroite s = match s.dir with
                 | Est -> s
                 | Ouest -> s
 
-(*  *)
+(* Applique une certaine action en fonction d'un caractère *)
 let appliqueTouche car s = 
   if car = s.appartient.haut then versHaut s
   else if car = s.appartient.bas then versBas s
@@ -417,18 +417,9 @@ let appliqueTouche car s =
   else if car = s.appartient.droite then versDroite s
   else s
 
+(* Applique appliqueTouche sur une liste de serpent*)
 let appliquerToucheSerps car lSerp = List.map (appliqueTouche car) lSerp
 
-
-
-(* modifie la liste l en appliquant la fonction f à l'element d'indice i.
-  La fonction renvoi la liste si i est trop grand et non une erreur pour éviter 
-  d'arreter le programme si par exemple il n'y à qu'un jouer et que l'on appuis 
-  sur une touche attribué pour le joueur 2*)
-let rec modifElemList f l i = match l with
-| [] -> l
-| e::s  -> if i = 0 then (f e)::s
-            else e::(modifElemList f s (i-1))
 
 (* boucle d'exécution et d'intéraction *)
 let rec loop ref_state = 
