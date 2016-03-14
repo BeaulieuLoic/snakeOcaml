@@ -1,5 +1,5 @@
-exec: snake
+exec: snake.ml
 	./snake
 
-snake: snake.ml
+snake.ml: snake.ml
 	ocamlc unix.cma graphics.cma snake.ml -o snake
