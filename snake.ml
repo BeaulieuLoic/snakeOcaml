@@ -2,6 +2,10 @@
    Jeu Snake (squelette de programme)
    
    compilation: ocamlc -o snake unix.cma graphics.cma snake.ml
+
+  Loic Beaulieu groupe 1.1
+
+
 *)
 open Graphics
   (* utiliser la librairie Graphics pour toutes les
@@ -29,8 +33,8 @@ type objCase = Obstacle (* obstacle que le serpent peut rencontrer,
               identique au bord excepter la couleur *) 
   | Bord (* bord du terrain *)
   | Pastille  (* pastille que le serpent peut manger*)
-  | Serpent of joueur (* case contenant une partie d'un serpent, Joueur permet de distinger la couleur (ex: J1 = case bleu) *)
-  | Vide (* case vide *)
+  | Serpent of joueur (* case contenant une partie d'un serpent appartenant à un joueur *)
+  | Vide (* case vide ou le serpent peut aler *)
 
 
 (* une case est définit par ces coordonnées en x et en y -> (x,y)
@@ -60,14 +64,14 @@ type serpent = {
   appartient : joueur;
 }
 
-(* l'état courant d'un jeux est composé:
+(* L'état courant d'un jeux est composé:
   d'une list de case
   listeSerp correspond à la liste des serpents sur le jeux.
 
   Il est préférable de garder le même ordre tout le long de 
   la partie pour évité quelque problème lors de l'affichage des scores.
   (l'affichage des scores s'affiche dans l'ordre de la liste, si l'ordre change 
-  le texte sera illisible car le texte changera tout le temps ) 
+  le texte sera illisible car l'ordre d'affichage des score changera tout le temps) 
 *)
 type state = {
   damier : case list;
@@ -80,7 +84,7 @@ let tCase = 13 (* longueur d'une case en pixel, utilisé pour dessiner les cases
 (* Nombre de case dans le damier: hDamier*lDamier *)
 let hDamier = height/tCase (* damier de même hauteur que la fenètre  *)
 let lDamier = width/(tCase+2) (* longueur du damier prend presque toute la longueur de la fenètre.
-                                le +2 sert à laisser de l'espace à droite pour le score *)
+                                le +2 sert à laisser de l'espace à droite pour l'affichage du score *)
 
 (* nombre de pastille à récupérer à chaque étape et qui fait accéléré le niveau *)
 let nbrPastille = 3
@@ -99,11 +103,12 @@ let serpJ1 = {dir=Est ;
 (* serpent du joueur 2 de base lors du lancement du jeu *)
 let j2 = {nom = "Joueur 2"; couleurSerp = magenta;
   haut = 'u'; bas = 'j'; gauche = 'h'; droite = 'k'}
+
 let serpJ2 = {dir=Ouest ;
   composition = [(lDamier-5,hDamier/2);(lDamier-4,hDamier/2);(lDamier-3,hDamier/2)] ; 
   score = 0; appartient = j2}
 
-(* liste des serpent en jeu. Enlever serpJ2 pour jouer en 1 joueur *)
+(* liste des serpent en jeu. Enlever serpJ2 pour jouer en mode 1 joueur *)
 let listeSerpIni = [serpJ1;serpJ2]
 
 (* liste des obstacles *)
@@ -133,7 +138,7 @@ let obstacle =  [(* bloc en haut à gauche *)
   de cette case ne se trouve pas dans s, alors le contenue
   de la case est mis à vide.
 
-  Ne vérifie pas que le serpent se trouve sur un bord ou un obstacle
+  Ne vérifie pas que le serpent se trouve à une case interdite
 *)
 let rec insererSerpent s damier = match s.composition,damier with
   _ ,[] -> damier 
@@ -240,11 +245,6 @@ let rec supDernier l = match l with
 (* Supprime la dernière case du serpent *)
 let supSerp s = {s with composition = (supDernier s.composition)}
 
-(* Appel la fonction f i fois sur elem*)
-let rec repFonction f i elem =
-  if i = 0 then elem
-  else repFonction f (i-1) (f elem)
-
 (*
   Déplace le serpent en fonction de sont orientation. 
   S'il ne rencontre pas de pastille, on supprime le dernier element pour évité qu'il grandisse en continu.
@@ -259,7 +259,7 @@ let serpSuiv s damier =
         | Bord -> failwith ("Perdu ! Le "^s.appartient.nom^" à touché le bord du terrain.")
         | Serpent j-> if j = s.appartient then failwith ("Perdu ! "^s.appartient.nom^" s'est manger lui même.")
                         else failwith ("Perdu ! "^s.appartient.nom^" est entré en colision avec "^j.nom)
-        | Obstacle -> failwith ("Perdu ! Le "^s.appartient.nom^" à touché un obstacle.")
+        | Obstacle -> failwith ("Perdu ! "^s.appartient.nom^" à touché un obstacle.")
 
 (* 
   Applique serpSuiv avec une liste de serpent 
@@ -274,11 +274,11 @@ let sumScore lserp = List.fold_left (fun acc serp -> acc + serp.score) 0 lserp
 
 
 (*------------------------------ fonction dessin ------------------------------*)
-(* Dessine un carrer plein représentant une case.
+(* Dessine un carré plein représentant une case.
   La couleur varie en fonction du contenu d'une case*)
 let dessinerCase case = match case.coord with
   (x,y) -> match case.contenant with
-    Vide -> set_color white ; fill_rect (x*tCase) (y*tCase) tCase tCase
+    | Vide -> set_color white ; fill_rect (x*tCase) (y*tCase) tCase tCase
     | Bord -> set_color black;fill_rect (x*tCase) (y*tCase) tCase tCase
     | Pastille -> set_color green;fill_rect (x*tCase) (y*tCase) tCase tCase
     | Obstacle -> set_color red;fill_rect (x*tCase) (y*tCase) tCase tCase
@@ -287,13 +287,10 @@ let dessinerCase case = match case.coord with
                   set_color green;
                   draw_rect (x*tCase) (y*tCase) tCase tCase
                   
-                  
-                  
-                  
 (* Dessiner les cases ce trouvant dans liste *)
 let dessinerListeCase liste = List.fold_left (fun acc case  -> dessinerCase case) () liste
 
-(* Afficher dans le coin en (x,y) de la fenetre un msg*)
+(* Afficher dans le coin en (x,y) de la fenetre du texte en effaçant l'ancien message par un carré blanc *)
 let afficherMsg (x,y) msg =
   let tx,ty = text_size msg in
       set_color white;
@@ -302,7 +299,7 @@ let afficherMsg (x,y) msg =
       moveto x y ;
       draw_string msg
 
-(* Affichage du score en haut à droite de la fenètre *)
+(* Affichage du score du joueur s à la position donnée par le couple d'int pos *)
 let afficherScore s pos = afficherMsg pos ("Score "^s.appartient.nom^" : " ^ (string_of_int s.score))
 
 (* Affiche la liste des score en haut à droite*)
@@ -311,7 +308,13 @@ let afficherPlusieurScore lSerp =
     for i = 0 to nbrScore-1 do
       afficherScore (List.nth lSerp i) (width-110,(height-(i+1)*20+5))
     done
-  
+
+
+(* Appel la fonction f i fois sur elem*)
+let rec repFonction f i elem =
+  if i = 0 then elem
+  else repFonction f (i-1) (f elem)
+
 
 (* Génération d'un état initial du jeu *)
 let init_state () = 
